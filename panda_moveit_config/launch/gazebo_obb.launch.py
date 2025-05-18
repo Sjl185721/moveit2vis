@@ -53,7 +53,6 @@ def generate_launch_description():
                     )
                 ]
              )
-
     xacro_file = os.path.join(arm_robot_sim_path,
                               'config',
                               'panda.urdf.xacro')
@@ -61,7 +60,12 @@ def generate_launch_description():
     doc = xacro.process_file(xacro_file, mappings={'use_sim' : 'true'})
 
     robot_desc = doc.toprettyxml(indent='  ')
-    
+    '''
+    urdf_file = os.path.join(arm_robot_sim_path, 'config', 'panda.urdf')
+    with open(urdf_file, 'r') as infp:
+        robot_desc = infp.read()
+    '''
+
     gz_spawn_entity = Node(
         package='ros_gz_sim',
         executable='create',
@@ -144,20 +148,29 @@ def generate_launch_description():
         arguments=['/image_raw@sensor_msgs/msg/Image@gz.msgs.Image'], 
         output='screen'
     )
-
+    # depth_bridge = Node(
+    #     package='ros_gz_bridge',
+    #     executable='parameter_bridge',
+    #     arguments=['/depth_camera/depth/image_raw@sensor_msgs/msg/Image@gz.msgs.Image',
+    #     '/depth/camera_info@sensor_msgs/msg/CameraInfo@gz.msgs.CameraInfo'
+    #     ],
+    #     output='screen'
+    # )
     depth_bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
         arguments=[
-            '/camera/depth/image_raw@sensor_msgs/msg/Image@gz.msgs.Image'
+            '/camera/rgb/image_raw@sensor_msgs/msg/Image@gz.msgs.Image',
+            '/camera/depth/image_raw@sensor_msgs/msg/Image@gz.msgs.Image',
+            '/camera/depth/points@sensor_msgs/msg/PointCloud2@gz.msgs.PointCloud2'
         ],
         output='screen'
     )
     clock_bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
-        arguments=['/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock'],
-        parameters=[{"use_sim_time": True}],
+        arguments=['/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock'], 
+
         output='screen'
     )
     load_controllers = []
@@ -174,7 +187,21 @@ def generate_launch_description():
             )
         ]
 
-    return LaunchDescription(
+    # return LaunchDescription(
+    #     [
+    #         gazebo_resource_path,
+    #         arguments,
+    #         gazebo,
+    #         gz_spawn_entity,
+    #         moveit_py_node,
+    #         robot_state_publisher,
+    #         bridge,
+    #         rviz_node,
+    #         static_tf,
+    #     ]
+    #     + load_controllers
+    # )
+        return LaunchDescription(
         [
             gazebo_resource_path,
             arguments,
@@ -183,10 +210,10 @@ def generate_launch_description():
             moveit_py_node,
             robot_state_publisher,
             bridge,
-            depth_bridge,
-            clock_bridge,
             rviz_node,
             static_tf,
+            depth_bridge,
+            clock_bridge
         ]
         + load_controllers
     )
